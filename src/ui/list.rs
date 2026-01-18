@@ -1,7 +1,7 @@
 use gtk::prelude::*;
 use libadwaita::{self as adw, prelude::*};
 
-pub fn create_list_of_cliboards() -> adw::Clamp {
+pub fn build() -> adw::Clamp {
     let list_box = gtk::ListBox::builder()
         .selection_mode(gtk::SelectionMode::None)
         .margin_top(24)
