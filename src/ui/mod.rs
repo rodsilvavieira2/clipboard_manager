@@ -2,11 +2,7 @@ pub mod header;
 pub mod list;
 pub mod search_bar;
 
-use gtk::{
-    Orientation,
-    glib::object::ObjectExt,
-    prelude::{BoxExt, GtkWindowExt},
-};
+use gtk::{Orientation, gio, glib, glib::object::ObjectExt, prelude::*};
 use libadwaita as adw;
 
 pub fn build_ui(app: &adw::Application) {
@@ -39,6 +35,20 @@ pub fn build_ui(app: &adw::Application) {
         .default_height(600)
         .default_width(900)
         .build();
+
+    let action_search = gio::SimpleAction::new("search", None);
+
+    action_search.connect_activate(glib::clone!(
+        #[weak]
+        search_button,
+        move |_, _| {
+            search_button.set_active(!search_button.is_active());
+        }
+    ));
+
+    window.add_action(&action_search);
+
+    app.set_accels_for_action("win.search", &["<Control>f"]);
 
     window.present();
 }
