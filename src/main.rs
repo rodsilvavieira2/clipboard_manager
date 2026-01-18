@@ -10,7 +10,9 @@ fn main() {
     let app = adw::Application::builder().application_id(APP_ID).build();
 
     app.connect_activate(move |app| {
-        ui::build_ui(app);
+        let display = gtk::gdk::Display::default().expect("Could not get the default display");
+
+        ui::build_ui(app, &display);
     });
 
     app.run();

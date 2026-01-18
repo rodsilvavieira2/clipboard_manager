@@ -2,10 +2,16 @@ pub mod header;
 pub mod list;
 pub mod search_bar;
 
-use gtk::{Orientation, gio, glib, glib::object::ObjectExt, prelude::*};
+use gtk::{
+    Orientation, gdk, gio,
+    glib::{self, object::ObjectExt},
+    prelude::*,
+};
 use libadwaita as adw;
 
-pub fn build_ui(app: &adw::Application) {
+use crate::service::cliboard_monitor::{ClipboardMonitor, IClipboardMonitor};
+
+pub fn build_ui(app: &adw::Application, display: &gdk::Display) {
     let (header_bar, search_button) = header::build();
 
     let content = gtk::Box::builder()
@@ -24,7 +30,24 @@ pub fn build_ui(app: &adw::Application) {
 
     content.append(&search_bar);
 
-    let list_view = list::build();
+    let clipboard_monitor = ClipboardMonitor::new(display);
+    let history = clipboard_monitor.history();
+
+    let list_view = list::build(history.clone(), display);
+
+    let display_clone = display.clone();
+
+    clipboard_monitor.start_monitoring(glib::clone!(
+        #[weak]
+        list_view,
+        #[strong]
+        history,
+        #[strong]
+        display_clone,
+        move || {
+            list::refresh_list(&list_view, history.clone(), &display_clone);
+        }
+    ));
 
     content.append(&list_view);
 

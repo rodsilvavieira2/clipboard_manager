@@ -7,7 +7,7 @@ pub struct ClipboardEntry {
     pub source: String,
 }
 
-trait IClipboardEntry {
+pub trait IClipboardEntry {
     fn new(content: String) -> Self;
 
     fn format_time(&self) -> String;
