@@ -1,3 +1,4 @@
+mod service;
 mod ui;
 
 use gtk::gio::prelude::{ApplicationExt, ApplicationExtManual};

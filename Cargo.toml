@@ -4,5 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+chrono = "0.4.43"
 gtk = { version = "0.10.3", package = "gtk4", features = ["v4_12"] }
 libadwaita = { version = "0.8.1", features = ["v1_5"] }
