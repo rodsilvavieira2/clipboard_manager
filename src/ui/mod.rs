@@ -1,4 +1,5 @@
 pub mod header;
+pub mod list;
 
 use gtk::{
     Orientation,
@@ -14,6 +15,9 @@ pub fn build_ui(app: &adw::Application) {
         .build();
 
     content.append(&header_bar);
+
+    let list_view = list::create_list_of_cliboards();
+    content.append(&list_view);
 
     let window = adw::ApplicationWindow::builder()
         .application(app)
