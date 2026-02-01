@@ -2,7 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use gtk::gdk::{self, glib, prelude::DisplayExt};
 
-use crate::service::cliboard_history::{ClipboardHistory, IClipboardHistory};
+use crate::service::cliboard_history::{ClipboardContent, ClipboardHistory, IClipboardHistory};
 
 pub struct ClipboardMonitor {
     clipboard: gdk::Clipboard,
@@ -53,7 +53,9 @@ impl IClipboardMonitor for ClipboardMonitor {
                         let text_str = text.to_string();
 
                         if !text_str.is_empty() {
-                            history.borrow_mut().add_entry(text_str);
+                            history
+                                .borrow_mut()
+                                .add_entry(ClipboardContent::Text(text_str));
                             on_change()
                         }
                     }
@@ -86,7 +88,9 @@ impl IClipboardMonitor for ClipboardMonitor {
                         if let Ok(Some(text)) = clipboard.read_text_future().await {
                             let text_str = text.to_string();
                             if !text_str.is_empty() {
-                                history.borrow_mut().add_entry(text_str);
+                                history
+                                    .borrow_mut()
+                                    .add_entry(ClipboardContent::Text(text_str));
                                 callback();
                             }
                         }

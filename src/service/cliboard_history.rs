@@ -1,24 +1,44 @@
 use chrono::{DateTime, Local};
 
 #[derive(Debug, Clone)]
+pub enum ClipboardContent {
+    Text(String),
+    Image(Vec<u8>),
+}
+
+impl ClipboardContent {
+    pub fn as_text(&self) -> String {
+        match self {
+            Self::Text(text) => text.clone(),
+            Self::Image(_) => "[Image]".to_string(),
+        }
+    }
+
+    pub fn is_image(&self) -> bool {
+        matches!(self, Self::Image(_))
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct ClipboardEntry {
-    pub content: String,
+    pub content: ClipboardContent,
     pub timestamp: DateTime<Local>,
     pub source: String,
+    pub raw_id: Option<String>,
 }
 
 pub trait IClipboardEntry {
-    fn new(content: String) -> Self;
-
+    fn new(content: ClipboardContent, source: Option<String>, raw_id: Option<String>) -> Self;
     fn format_time(&self) -> String;
 }
 
 impl IClipboardEntry for ClipboardEntry {
-    fn new(content: String) -> Self {
+    fn new(content: ClipboardContent, source: Option<String>, raw_id: Option<String>) -> Self {
         Self {
             content,
             timestamp: Local::now(),
-            source: "Unknown".to_string(),
+            source: source.unwrap_or_else(|| "Unknown".to_string()),
+            raw_id,
         }
     }
 
@@ -57,12 +77,14 @@ pub struct ClipboardHistory {
 
 pub trait IClipboardHistory {
     fn new() -> Self;
-
-    fn add_entry(&mut self, content: String);
-
+    fn add_entry(&mut self, content: ClipboardContent);
+    fn add_entry_with_source(
+        &mut self,
+        content: ClipboardContent,
+        source: String,
+        raw_id: Option<String>,
+    );
     fn entries(&self) -> &[ClipboardEntry];
-
-    fn clear(&mut self);
 }
 
 impl IClipboardHistory for ClipboardHistory {
@@ -73,15 +95,24 @@ impl IClipboardHistory for ClipboardHistory {
         }
     }
 
-    fn add_entry(&mut self, content: String) {
+    fn add_entry(&mut self, content: ClipboardContent) {
+        self.add_entry_with_source(content, "Unknown".to_string(), None);
+    }
+
+    fn add_entry_with_source(
+        &mut self,
+        content: ClipboardContent,
+        source: String,
+        raw_id: Option<String>,
+    ) {
         if let Some(last) = self.entries.first() {
-            if last.content == content {
-                return;
+            match (&last.content, &content) {
+                (ClipboardContent::Text(a), ClipboardContent::Text(b)) if a == b => return,
+                _ => {}
             }
         }
 
-        let entry = ClipboardEntry::new(content);
-
+        let entry = ClipboardEntry::new(content, Some(source), raw_id);
         self.entries.insert(0, entry);
 
         if self.entries.len() > self.max_entries {
@@ -91,9 +122,5 @@ impl IClipboardHistory for ClipboardHistory {
 
     fn entries(&self) -> &[ClipboardEntry] {
         &self.entries
-    }
-
-    fn clear(&mut self) {
-        self.entries.clear();
     }
 }

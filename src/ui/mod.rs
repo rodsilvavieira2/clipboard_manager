@@ -2,6 +2,7 @@ pub mod header;
 pub mod list;
 pub mod search_bar;
 
+use crate::service::{cliboard_history::IClipboardHistory, cliboard_provider::IClipboardProvider};
 use gtk::{
     Orientation, gdk, gio,
     glib::{self, object::ObjectExt},
@@ -9,7 +10,10 @@ use gtk::{
 };
 use libadwaita as adw;
 
-use crate::service::cliboard_monitor::{ClipboardMonitor, IClipboardMonitor};
+use crate::service::{
+    cliboard_monitor::{ClipboardMonitor, IClipboardMonitor},
+    cliphist_provider::CliphistProvider,
+};
 
 pub fn build_ui(app: &adw::Application, display: &gdk::Display) {
     let (header_bar, search_button) = header::build();
@@ -35,17 +39,42 @@ pub fn build_ui(app: &adw::Application, display: &gdk::Display) {
 
     let list_view = list::build(history.clone(), display);
 
+    let provider = CliphistProvider;
     let display_clone = display.clone();
 
-    clipboard_monitor.start_monitoring(glib::clone!(
+    glib::MainContext::default().spawn_local(glib::clone!(
         #[weak]
         list_view,
         #[strong]
         history,
         #[strong]
         display_clone,
-        move || {
-            list::refresh_list(&list_view, history.clone(), &display_clone);
+        async move {
+            let result = gio::spawn_blocking(move || provider.list_entries()).await;
+
+            match result {
+                Ok(Ok(entries)) => {
+                    eprintln!("cliphist entries loaded: {}", entries.len());
+                    for (raw_id, content) in entries.into_iter().rev() {
+                        history.borrow_mut().add_entry_with_source(
+                            content,
+                            provider.name().to_string(),
+                            raw_id,
+                        );
+                    }
+
+                    let total_entries = history.borrow().entries().len();
+                    eprintln!("history entries after import: {}", total_entries);
+
+                    list::refresh_list(&list_view, history.clone(), &display_clone);
+                }
+                Ok(Err(err)) => {
+                    eprintln!("cliphist list error: {err}");
+                }
+                Err(err) => {
+                    eprintln!("cliphist spawn error: {:?}", err);
+                }
+            }
         }
     ));
 
