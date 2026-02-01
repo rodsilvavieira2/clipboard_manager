@@ -52,7 +52,7 @@ impl IClipboardProvider for CliphistProvider {
                 .filter(|value| !value.is_empty());
 
             let content_type = if content.starts_with("[[ binary data") {
-                ClipboardContent::Image(Vec::new())
+                ClipboardContent::Image(())
             } else {
                 ClipboardContent::Text(content)
             };

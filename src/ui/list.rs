@@ -83,7 +83,8 @@ fn populate_list(list_box: &gtk::ListBox, history: &ClipboardHistory, display: &
             .build();
 
         if entry.content.is_image() {
-            row.set_icon_name(Some("image-x-generic-symbolic"));
+            let icon = gtk::Image::from_icon_name("image-x-generic-symbolic");
+            row.add_prefix(&icon);
         }
 
         let copy_button = gtk::Button::builder()

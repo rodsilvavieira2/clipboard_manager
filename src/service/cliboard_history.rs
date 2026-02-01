@@ -3,7 +3,7 @@ use chrono::{DateTime, Local};
 #[derive(Debug, Clone)]
 pub enum ClipboardContent {
     Text(String),
-    Image(Vec<u8>),
+    Image(()),
 }
 
 impl ClipboardContent {
@@ -24,21 +24,19 @@ pub struct ClipboardEntry {
     pub content: ClipboardContent,
     pub timestamp: DateTime<Local>,
     pub source: String,
-    pub raw_id: Option<String>,
 }
 
 pub trait IClipboardEntry {
-    fn new(content: ClipboardContent, source: Option<String>, raw_id: Option<String>) -> Self;
+    fn new(content: ClipboardContent, source: Option<String>) -> Self;
     fn format_time(&self) -> String;
 }
 
 impl IClipboardEntry for ClipboardEntry {
-    fn new(content: ClipboardContent, source: Option<String>, raw_id: Option<String>) -> Self {
+    fn new(content: ClipboardContent, source: Option<String>) -> Self {
         Self {
             content,
             timestamp: Local::now(),
             source: source.unwrap_or_else(|| "Unknown".to_string()),
-            raw_id,
         }
     }
 
@@ -77,13 +75,7 @@ pub struct ClipboardHistory {
 
 pub trait IClipboardHistory {
     fn new() -> Self;
-    fn add_entry(&mut self, content: ClipboardContent);
-    fn add_entry_with_source(
-        &mut self,
-        content: ClipboardContent,
-        source: String,
-        raw_id: Option<String>,
-    );
+    fn add_entry_with_source(&mut self, content: ClipboardContent, source: String);
     fn entries(&self) -> &[ClipboardEntry];
 }
 
@@ -95,16 +87,7 @@ impl IClipboardHistory for ClipboardHistory {
         }
     }
 
-    fn add_entry(&mut self, content: ClipboardContent) {
-        self.add_entry_with_source(content, "Unknown".to_string(), None);
-    }
-
-    fn add_entry_with_source(
-        &mut self,
-        content: ClipboardContent,
-        source: String,
-        raw_id: Option<String>,
-    ) {
+    fn add_entry_with_source(&mut self, content: ClipboardContent, source: String) {
         if let Some(last) = self.entries.first() {
             match (&last.content, &content) {
                 (ClipboardContent::Text(a), ClipboardContent::Text(b)) if a == b => return,
@@ -112,7 +95,7 @@ impl IClipboardHistory for ClipboardHistory {
             }
         }
 
-        let entry = ClipboardEntry::new(content, Some(source), raw_id);
+        let entry = ClipboardEntry::new(content, Some(source));
         self.entries.insert(0, entry);
 
         if self.entries.len() > self.max_entries {

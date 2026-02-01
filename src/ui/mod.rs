@@ -4,9 +4,10 @@ pub mod search_bar;
 
 use crate::service::{cliboard_history::IClipboardHistory, cliboard_provider::IClipboardProvider};
 use gtk::{
-    Orientation, gdk, gio,
+    gdk, gio,
     glib::{self, object::ObjectExt},
     prelude::*,
+    Orientation,
 };
 use libadwaita as adw;
 
@@ -55,11 +56,10 @@ pub fn build_ui(app: &adw::Application, display: &gdk::Display) {
             match result {
                 Ok(Ok(entries)) => {
                     eprintln!("cliphist entries loaded: {}", entries.len());
-                    for (raw_id, content) in entries.into_iter().rev() {
+                    for (_raw_id, content) in entries.into_iter().rev() {
                         history.borrow_mut().add_entry_with_source(
                             content,
                             provider.name().to_string(),
-                            raw_id,
                         );
                     }
 
