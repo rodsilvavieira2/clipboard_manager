@@ -25,7 +25,7 @@ pub fn build_ui(app: &adw::Application, display: &gdk::Display) {
 
     content.append(&header_bar);
 
-    let search_bar = search_bar::build();
+    let (search_bar, search_entry) = search_bar::build();
 
     search_button
         .bind_property("active", &search_bar, "search-mode-enabled")
@@ -39,6 +39,8 @@ pub fn build_ui(app: &adw::Application, display: &gdk::Display) {
     let history = clipboard_monitor.history();
 
     let list_view = list::build(history.clone(), display);
+
+    list::setup_search(&list_view, &search_entry);
 
     let provider = CliphistProvider;
     let display_clone = display.clone();
@@ -57,10 +59,9 @@ pub fn build_ui(app: &adw::Application, display: &gdk::Display) {
                 Ok(Ok(entries)) => {
                     eprintln!("cliphist entries loaded: {}", entries.len());
                     for (_raw_id, content) in entries.into_iter().rev() {
-                        history.borrow_mut().add_entry_with_source(
-                            content,
-                            provider.name().to_string(),
-                        );
+                        history
+                            .borrow_mut()
+                            .add_entry_with_source(content, provider.name().to_string());
                     }
 
                     let total_entries = history.borrow().entries().len();
