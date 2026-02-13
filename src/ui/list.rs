@@ -128,34 +128,37 @@ fn find_list_box(scrolled: &gtk::ScrolledWindow) -> Option<gtk::ListBox> {
 
 pub fn setup_search(clamp: &adw::Clamp, search_entry: &gtk::SearchEntry) {
     if let Some(scrolled) = clamp.child().and_downcast::<gtk::ScrolledWindow>() {
-        if let Some(list_box) = find_list_box(&scrolled) {
-            list_box.set_filter_func(glib::clone!(
-                #[strong]
-                search_entry,
-                move |row| {
-                    let text = search_entry.text();
+        match find_list_box(&scrolled) {
+            Some(list_box) => {
+                list_box.set_filter_func(glib::clone!(
+                    #[strong]
+                    search_entry,
+                    move |row| {
+                        let text = search_entry.text();
 
-                    if text.is_empty() {
-                        return true;
+                        if text.is_empty() {
+                            return true;
+                        }
+
+                        if let Some(action_row) = row.downcast_ref::<adw::ActionRow>() {
+                            let title = action_row.title();
+
+                            return title.to_lowercase().contains(&text.to_lowercase());
+                        }
+
+                        true
                     }
+                ));
 
-                    if let Some(action_row) = row.downcast_ref::<adw::ActionRow>() {
-                        let title = action_row.title();
-
-                        return title.to_lowercase().contains(&text.to_lowercase());
+                search_entry.connect_search_changed(glib::clone!(
+                    #[weak]
+                    list_box,
+                    move |_| {
+                        list_box.invalidate_filter();
                     }
-
-                    true
-                }
-            ));
-
-            search_entry.connect_search_changed(glib::clone!(
-                #[weak]
-                list_box,
-                move |_| {
-                    list_box.invalidate_filter();
-                }
-            ));
+                ));
+            }
+            None => todo!(),
         }
     }
 }

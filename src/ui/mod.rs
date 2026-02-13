@@ -4,10 +4,11 @@ pub mod search_bar;
 
 use crate::service::{cliboard_history::IClipboardHistory, cliboard_provider::IClipboardProvider};
 use gtk::{
-    gdk, gio,
+    Orientation,
+    gdk::{self, Key},
+    gio,
     glib::{self, object::ObjectExt},
     prelude::*,
-    Orientation,
 };
 use libadwaita as adw;
 
@@ -87,7 +88,44 @@ pub fn build_ui(app: &adw::Application, display: &gdk::Display) {
         .content(&content)
         .default_height(600)
         .default_width(900)
+        .resizable(false)
+        .modal(true)
         .build();
+
+    search_bar.set_key_capture_widget(Some(&window));
+
+    let key_controller = gtk::EventControllerKey::new();
+
+    key_controller.connect_key_pressed(glib::clone!(
+        #[strong]
+        search_button,
+        move |_, key: Key, _key_code, state| {
+            if state.contains(gdk::ModifierType::CONTROL_MASK)
+                || state.contains(gdk::ModifierType::ALT_MASK)
+                || state.contains(gdk::ModifierType::SUPER_MASK)
+            {
+                return glib::Propagation::Proceed;
+            }
+
+            if key == Key::Escape {
+                search_button.set_active(false);
+                return glib::Propagation::Proceed;
+            }
+
+            if let Some(ch) = key.to_unicode() {
+                if ch.is_control() {
+                    return glib::Propagation::Proceed;
+                }
+
+                if !search_button.is_active() {
+                    search_button.set_active(true);
+                }
+            }
+            glib::Propagation::Proceed
+        }
+    ));
+
+    window.add_controller(key_controller);
 
     let action_search = gio::SimpleAction::new("search", None);
 
