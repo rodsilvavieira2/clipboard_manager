@@ -59,8 +59,8 @@ pub fn build(
                 );
             }
             crate::service::cliboard_history::ClipboardContent::Image(_) => {
-                if let Some(id) = &entry.id {
-                    if let Some(bytes) = fetch_binary_content(id) {
+                if let Some(id) = &entry.id
+                    && let Some(bytes) = fetch_binary_content(id) {
                         let temp_path = std::env::temp_dir().join("clipboard_manager_temp_image");
                         if std::fs::write(&temp_path, &bytes).is_ok() {
                             let file = gio::File::for_path(&temp_path);
@@ -75,7 +75,6 @@ pub fn build(
                             }
                         }
                     }
-                }
             }
         }
     });
