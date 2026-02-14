@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc, process::Command};
 
-use gtk::{gdk, glib, prelude::*};
+use gtk::{gdk, gio, glib, prelude::*};
 use libadwaita::{self as adw, prelude::*};
 
 use crate::service::cliboard_history::{ClipboardHistory, IClipboardEntry, IClipboardHistory};
@@ -42,15 +42,41 @@ pub fn build(
             entry.clone()
         };
 
-        if let crate::service::cliboard_history::ClipboardContent::Text(text) = entry.content {
-            let final_text = if let Some(id) = &entry.id {
-                fetch_full_content(id).unwrap_or_else(|| text.clone())
-            } else {
-                text.clone()
-            };
+        match entry.content {
+            crate::service::cliboard_history::ClipboardContent::Text(text) => {
+                let final_text = if let Some(id) = &entry.id {
+                    fetch_full_content(id).unwrap_or_else(|| text.clone())
+                } else {
+                    text.clone()
+                };
 
-            display_clone.clipboard().set_text(&final_text);
-            set_current_clipboard(list_box, &history_clone, &current_clipboard_clone, &final_text);
+                display_clone.clipboard().set_text(&final_text);
+                set_current_clipboard(
+                    list_box,
+                    &history_clone,
+                    &current_clipboard_clone,
+                    &final_text,
+                );
+            }
+            crate::service::cliboard_history::ClipboardContent::Image(_) => {
+                if let Some(id) = &entry.id {
+                    if let Some(bytes) = fetch_binary_content(id) {
+                        let temp_path = std::env::temp_dir().join("clipboard_manager_temp_image");
+                        if std::fs::write(&temp_path, &bytes).is_ok() {
+                            let file = gio::File::for_path(&temp_path);
+                            if let Ok(texture) = gdk::Texture::from_file(&file) {
+                                display_clone.clipboard().set_texture(&texture);
+                                set_current_clipboard(
+                                    list_box,
+                                    &history_clone,
+                                    &current_clipboard_clone,
+                                    "[Image]",
+                                );
+                            }
+                        }
+                    }
+                }
+            }
         }
     });
 
@@ -455,6 +481,20 @@ fn fetch_full_content(id: &str) -> Option<String> {
 
     if output.status.success() {
         return Some(String::from_utf8_lossy(&output.stdout).to_string());
+    }
+
+    None
+}
+
+fn fetch_binary_content(id: &str) -> Option<glib::Bytes> {
+    let output = Command::new("cliphist")
+        .arg("decode")
+        .arg(id)
+        .output()
+        .ok()?;
+
+    if output.status.success() {
+        return Some(glib::Bytes::from(&output.stdout));
     }
 
     None
