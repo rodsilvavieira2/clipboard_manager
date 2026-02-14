@@ -121,6 +121,7 @@ fn populate_list(
             .title(safe_title)
             .subtitle(safe_subtitle)
             .activatable(true)
+            .can_focus(false)
             .build();
 
         let list_row = gtk::ListBoxRow::new();
@@ -282,7 +283,7 @@ pub fn select_first_row(clamp: &adw::Clamp) -> bool {
 
     if let Some(row) = first_visible_row(&list_box) {
         list_box.select_row(Some(&row));
-        list_box.grab_focus();
+        row.grab_focus();
         return true;
     }
 
