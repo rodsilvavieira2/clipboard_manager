@@ -7,7 +7,7 @@ use std::{cell::RefCell, rc::Rc};
 use crate::service::{cliboard_history::IClipboardHistory, cliboard_provider::IClipboardProvider};
 use gtk::{
     Orientation,
-    gdk::{self, Key},
+    gdk::{self},
     gio,
     glib::{self, object::ObjectExt},
     prelude::*,
@@ -17,10 +17,12 @@ use libadwaita as adw;
 use crate::service::{
     cliboard_monitor::{ClipboardMonitor, IClipboardMonitor},
     cliphist_provider::CliphistProvider,
+    style_service::StyleService,
 };
 
 pub fn build_ui(app: &adw::Application, display: &gdk::Display) {
-    register_styles(display);
+    let style_service = StyleService::new();
+    style_service.apply_styles(display);
     let (header_bar, search_button) = header::build();
 
     let content = gtk::Box::builder()
@@ -106,69 +108,8 @@ pub fn build_ui(app: &adw::Application, display: &gdk::Display) {
 
     search_bar.set_key_capture_widget(Some(&window));
 
-    let key_controller = gtk::EventControllerKey::new();
-
-    key_controller.connect_key_pressed(glib::clone!(
-        #[strong]
-        search_button,
-        #[strong]
-        list_view,
-        #[strong]
-        current_clipboard,
-        #[strong]
-        display,
-        move |_, key: Key, _key_code, state| {
-            if state.contains(gdk::ModifierType::CONTROL_MASK)
-                || state.contains(gdk::ModifierType::ALT_MASK)
-                || state.contains(gdk::ModifierType::SUPER_MASK)
-            {
-                return glib::Propagation::Proceed;
-            }
-
-            if key == Key::Escape {
-                search_button.set_active(false);
-                return glib::Propagation::Proceed;
-            }
-
-            if key == Key::Down {
-                if !list::list_contains_focus(&list_view) && list::select_first_row(&list_view) {
-                    return glib::Propagation::Stop;
-                }
-
-                if list::move_selection(&list_view, list::NavigationDirection::Down) {
-                    return glib::Propagation::Stop;
-                }
-                return glib::Propagation::Proceed;
-            }
-
-            if key == Key::Up {
-                if list::move_selection(&list_view, list::NavigationDirection::Up) {
-                    return glib::Propagation::Stop;
-                }
-                return glib::Propagation::Proceed;
-            }
-
-            if key == Key::Return || key == Key::KP_Enter {
-                if list::activate_selected(&list_view, &history, &display, &current_clipboard) {
-                    return glib::Propagation::Stop;
-                }
-                return glib::Propagation::Proceed;
-            }
-
-            if let Some(ch) = key.to_unicode() {
-                if ch.is_control() {
-                    return glib::Propagation::Proceed;
-                }
-
-                if !search_button.is_active() {
-                    search_button.set_active(true);
-                }
-            }
-            glib::Propagation::Proceed
-        }
-    ));
-
-    window.add_controller(key_controller);
+    let keyboard_service = crate::service::keyboard_service::KeyboardService::new();
+    keyboard_service.setup(&window, &search_button, &list_view);
 
     let action_search = gio::SimpleAction::new("search", None);
 
@@ -186,16 +127,4 @@ pub fn build_ui(app: &adw::Application, display: &gdk::Display) {
 
     window.present();
     list::select_first_row(&list_view);
-}
-
-fn register_styles(display: &gdk::Display) {
-    let provider = gtk::CssProvider::new();
-    provider.load_from_string(
-        "listboxrow.current-clipboard {\n  background-color: alpha(@accent_bg_color, 0.15);\n}\nlistboxrow.current-clipboard:selected {\n  background-color: alpha(@accent_bg_color, 0.35);\n}\n",
-    );
-    gtk::style_context_add_provider_for_display(
-        display,
-        &provider,
-        gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
-    );
 }

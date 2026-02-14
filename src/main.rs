@@ -1,5 +1,5 @@
 mod service;
-mod ui;
+pub mod ui;
 
 use gtk::gio::prelude::{ApplicationExt, ApplicationExtManual};
 use libadwaita as adw;

@@ -23,6 +23,31 @@ pub fn build(
 
     list_box.add_css_class("boxed-list");
 
+    let display_clone = display.clone();
+    let history_clone = history.clone();
+    let current_clipboard_clone = current_clipboard.clone();
+
+    list_box.connect_row_activated(move |list_box, row| {
+        let index = row.index();
+
+        if index < 0 {
+            return;
+        }
+
+        let entry = {
+            let history = history_clone.borrow();
+            let Some(entry) = history.entries().get(index as usize) else {
+                return;
+            };
+            entry.clone()
+        };
+
+        if let crate::service::cliboard_history::ClipboardContent::Text(text) = entry.content {
+            display_clone.clipboard().set_text(&text);
+            set_current_clipboard(list_box, &history_clone, &current_clipboard_clone, &text);
+        }
+    });
+
     populate_list(&list_box, history, display, current_clipboard);
 
     let scrolled_window = gtk::ScrolledWindow::builder()
@@ -129,28 +154,6 @@ fn populate_list(
                         &list_box,
                         &history_for_button,
                         &current_clipboard_for_button,
-                        text,
-                    );
-                }
-            }
-        ));
-
-        let clipboard_row = display.clipboard();
-        let content_for_row = entry.content.clone();
-        let current_clipboard_for_row = current_clipboard.clone();
-        let history_for_row = history.clone();
-        row.connect_activated(glib::clone!(
-            #[weak]
-            list_box,
-            move |_| {
-                if let crate::service::cliboard_history::ClipboardContent::Text(text) =
-                    &content_for_row
-                {
-                    clipboard_row.set_text(text);
-                    set_current_clipboard(
-                        &list_box,
-                        &history_for_row,
-                        &current_clipboard_for_row,
                         text,
                     );
                 }
@@ -276,10 +279,9 @@ pub fn select_first_row(clamp: &adw::Clamp) -> bool {
         return false;
     }
 
-    list_box.grab_focus();
-
     if let Some(row) = first_visible_row(&list_box) {
         list_box.select_row(Some(&row));
+        list_box.grab_focus();
         return true;
     }
 
@@ -310,50 +312,6 @@ fn is_placeholder_row(list_box: &gtk::ListBox) -> bool {
     };
 
     row.title() == "No clipboard history yet"
-}
-
-pub fn activate_selected(
-    clamp: &adw::Clamp,
-    history: &Rc<RefCell<ClipboardHistory>>,
-    display: &gdk::Display,
-    current_clipboard: &Rc<RefCell<Option<String>>>,
-) -> bool {
-    let Some(scrolled) = clamp.child().and_downcast::<gtk::ScrolledWindow>() else {
-        return false;
-    };
-    let Some(list_box) = find_list_box(&scrolled) else {
-        return false;
-    };
-
-    if is_placeholder_row(&list_box) {
-        return false;
-    }
-
-    let Some(row) = list_box.selected_row() else {
-        return false;
-    };
-
-    let index = match usize::try_from(row.index()) {
-        Ok(value) => value,
-        Err(_) => return false,
-    };
-
-    let text = {
-        let history_snapshot = history.borrow();
-        let Some(entry) = history_snapshot.entries().get(index) else {
-            return false;
-        };
-
-        match &entry.content {
-            crate::service::cliboard_history::ClipboardContent::Text(text) => text.clone(),
-            crate::service::cliboard_history::ClipboardContent::Image(_) => return false,
-        }
-    };
-
-    let clipboard = display.clipboard();
-    clipboard.set_text(&text);
-    set_current_clipboard(&list_box, history, current_clipboard, &text);
-    true
 }
 
 fn set_current_clipboard(
