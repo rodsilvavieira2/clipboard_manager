@@ -136,6 +136,7 @@ fn populate_list(
             .valign(gtk::Align::Center)
             .css_classes(["flat"])
             .tooltip_text("Copy to clipboard")
+            .can_focus(false)
             .build();
 
         let clipboard = display.clipboard();
