@@ -24,19 +24,21 @@ pub struct ClipboardEntry {
     pub content: ClipboardContent,
     pub timestamp: DateTime<Local>,
     pub source: String,
+    pub id: Option<String>,
 }
 
 pub trait IClipboardEntry {
-    fn new(content: ClipboardContent, source: Option<String>) -> Self;
+    fn new(content: ClipboardContent, source: Option<String>, id: Option<String>) -> Self;
     fn format_time(&self) -> String;
 }
 
 impl IClipboardEntry for ClipboardEntry {
-    fn new(content: ClipboardContent, source: Option<String>) -> Self {
+    fn new(content: ClipboardContent, source: Option<String>, id: Option<String>) -> Self {
         Self {
             content,
             timestamp: Local::now(),
             source: source.unwrap_or_else(|| "Unknown".to_string()),
+            id,
         }
     }
 
@@ -75,7 +77,7 @@ pub struct ClipboardHistory {
 
 pub trait IClipboardHistory {
     fn new() -> Self;
-    fn add_entry_with_source(&mut self, content: ClipboardContent, source: String);
+    fn add_entry_with_source(&mut self, content: ClipboardContent, source: String, id: Option<String>);
     fn entries(&self) -> &[ClipboardEntry];
 }
 
@@ -87,7 +89,7 @@ impl IClipboardHistory for ClipboardHistory {
         }
     }
 
-    fn add_entry_with_source(&mut self, content: ClipboardContent, source: String) {
+    fn add_entry_with_source(&mut self, content: ClipboardContent, source: String, id: Option<String>) {
         if let Some(last) = self.entries.first() {
             match (&last.content, &content) {
                 (ClipboardContent::Text(a), ClipboardContent::Text(b)) if a == b => return,
@@ -95,7 +97,7 @@ impl IClipboardHistory for ClipboardHistory {
             }
         }
 
-        let entry = ClipboardEntry::new(content, Some(source));
+        let entry = ClipboardEntry::new(content, Some(source), id);
         self.entries.insert(0, entry);
 
         if self.entries.len() > self.max_entries {

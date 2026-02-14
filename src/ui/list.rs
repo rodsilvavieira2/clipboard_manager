@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc, process::Command};
 
 use gtk::{gdk, glib, prelude::*};
 use libadwaita::{self as adw, prelude::*};
@@ -43,8 +43,14 @@ pub fn build(
         };
 
         if let crate::service::cliboard_history::ClipboardContent::Text(text) = entry.content {
-            display_clone.clipboard().set_text(&text);
-            set_current_clipboard(list_box, &history_clone, &current_clipboard_clone, &text);
+            let final_text = if let Some(id) = &entry.id {
+                fetch_full_content(id).unwrap_or_else(|| text.clone())
+            } else {
+                text.clone()
+            };
+
+            display_clone.clipboard().set_text(&final_text);
+            set_current_clipboard(list_box, &history_clone, &current_clipboard_clone, &final_text);
         }
     });
 
@@ -141,22 +147,28 @@ fn populate_list(
             .build();
 
         let clipboard = display.clipboard();
-        let content_to_copy = entry.content.clone();
         let current_clipboard_for_button = current_clipboard.clone();
         let history_for_button = history.clone();
+        let entry_for_button = entry.clone();
         copy_button.connect_clicked(glib::clone!(
             #[weak]
             list_box,
             move |_| {
                 if let crate::service::cliboard_history::ClipboardContent::Text(text) =
-                    &content_to_copy
+                    &entry_for_button.content
                 {
-                    clipboard.set_text(text);
+                    let final_text = if let Some(id) = &entry_for_button.id {
+                        fetch_full_content(id).unwrap_or_else(|| text.clone())
+                    } else {
+                        text.clone()
+                    };
+
+                    clipboard.set_text(&final_text);
                     set_current_clipboard(
                         &list_box,
                         &history_for_button,
                         &current_clipboard_for_button,
-                        text,
+                        &final_text,
                     );
                 }
             }
@@ -432,4 +444,18 @@ fn ensure_visible_selection(list_box: &gtk::ListBox) {
     } else {
         list_box.select_row(None::<&gtk::ListBoxRow>);
     }
+}
+
+fn fetch_full_content(id: &str) -> Option<String> {
+    let output = Command::new("cliphist")
+        .arg("decode")
+        .arg(id)
+        .output()
+        .ok()?;
+
+    if output.status.success() {
+        return Some(String::from_utf8_lossy(&output.stdout).to_string());
+    }
+
+    None
 }

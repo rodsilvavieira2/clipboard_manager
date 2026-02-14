@@ -71,7 +71,7 @@ pub fn build_ui(app: &adw::Application, display: &gdk::Display) {
                     for (_raw_id, content) in entries.into_iter().rev() {
                         history
                             .borrow_mut()
-                            .add_entry_with_source(content, provider.name().to_string());
+                            .add_entry_with_source(content, provider.name().to_string(), _raw_id);
                     }
 
                     let total_entries = history.borrow().entries().len();
