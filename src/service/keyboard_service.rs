@@ -23,11 +23,13 @@ impl KeyboardService {
 
         key_controller.connect_key_pressed(glib::clone!(
             #[strong]
+            window,
+            #[strong]
             search_button,
             #[strong]
             list_view,
             move |_, key, _key_code, state| {
-                Self::handle_key_press(&search_button, &list_view, key, state)
+                Self::handle_key_press(&window, &search_button, &list_view, key, state)
             }
         ));
 
@@ -35,6 +37,7 @@ impl KeyboardService {
     }
 
     fn handle_key_press(
+        window: &adw::ApplicationWindow,
         search_button: &gtk::ToggleButton,
         _list_view: &adw::Clamp,
         key: Key,
@@ -48,7 +51,11 @@ impl KeyboardService {
         }
 
         if key == Key::Escape {
-            search_button.set_active(false);
+            if search_button.is_active() {
+                search_button.set_active(false);
+            } else {
+                window.close();
+            }
             return glib::Propagation::Proceed;
         }
 
