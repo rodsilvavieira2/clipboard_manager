@@ -4,7 +4,6 @@ pub mod search_bar;
 
 use std::{cell::RefCell, rc::Rc};
 
-use crate::service::{cliboard_history::IClipboardHistory, cliboard_provider::IClipboardProvider};
 use gtk::{
     Orientation,
     gdk::{self},
@@ -73,37 +72,20 @@ pub fn build_ui(app: &adw::Application, display: &gdk::Display) {
         display_clone,
         #[strong]
         toast_overlay_clone,
+        #[strong]
+        clipboard_monitor,
         async move {
-            let result = gio::spawn_blocking(move || provider.list_entries()).await;
-
-            match result {
-                Ok(Ok(entries)) => {
-                    eprintln!("cliphist entries loaded: {}", entries.len());
-                    for (_raw_id, content) in entries.into_iter().rev() {
-                        history.borrow_mut().add_entry_with_source(
-                            content,
-                            provider.name().to_string(),
-                            _raw_id,
-                        );
-                    }
-
-                    let total_entries = history.borrow().entries().len();
-                    eprintln!("history entries after import: {}", total_entries);
-
+            match clipboard_monitor.load_history(provider).await {
+                Ok(_) => {
                     list::refresh_list(
                         &list_view,
-                        history.clone(),
+                        history,
                         &display_clone,
-                        current_clipboard.clone(),
+                        current_clipboard,
                         toast_overlay_clone,
                     );
                 }
-                Ok(Err(err)) => {
-                    eprintln!("cliphist list error: {err}");
-                }
-                Err(err) => {
-                    eprintln!("cliphist spawn error: {:?}", err);
-                }
+                Err(err) => eprintln!("Error loading history: {err}"),
             }
         }
     ));
