@@ -184,19 +184,19 @@ fn populate_list(
         if entry.content.is_image() {
             let mut shown_preview = false;
 
-            if let Some(id) = &entry.id {
-                if let Some(bytes) = fetch_binary_content(id) {
-                    let temp_path =
-                        std::env::temp_dir().join(format!("clipboard_manager_preview_{}", id));
-                    if std::fs::write(&temp_path, &bytes).is_ok() {
-                        let file = gio::File::for_path(&temp_path);
-                        if let Ok(texture) = gdk::Texture::from_file(&file) {
-                            let picture = gtk::Picture::for_paintable(&texture);
-                            picture.set_size_request(48, 48);
-                            picture.set_content_fit(gtk::ContentFit::ScaleDown); // Scale down to fit, preserving aspect ratio
-                            row.add_prefix(&picture);
-                            shown_preview = true;
-                        }
+            if let Some(id) = &entry.id
+                && let Some(bytes) = fetch_binary_content(id)
+            {
+                let temp_path =
+                    std::env::temp_dir().join(format!("clipboard_manager_preview_{}", id));
+                if std::fs::write(&temp_path, &bytes).is_ok() {
+                    let file = gio::File::for_path(&temp_path);
+                    if let Ok(texture) = gdk::Texture::from_file(&file) {
+                        let picture = gtk::Picture::for_paintable(&texture);
+                        picture.set_size_request(48, 48);
+                        picture.set_content_fit(gtk::ContentFit::ScaleDown); 
+                        row.add_prefix(&picture);
+                        shown_preview = true;
                     }
                 }
             }
