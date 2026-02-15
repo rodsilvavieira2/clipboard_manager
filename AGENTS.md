@@ -3,9 +3,9 @@
 ## Build, Lint, and Test Commands
 
 ### Build Commands
-- `cargo build` - Build the project in debug mode
-- `cargo build --release` - Build the project in release mode with optimizations
-- `cargo build --release --target x86_64-unknown-linux-gnu` - Build for specific Linux target
+- `cargo build` - Builds the project in debug mode.
+- `cargo build --release` - Builds the project in release mode optimized for production.
+- `cargo build --release --target x86_64-unknown-linux-gnu` - Builds specifically for x86_64 Linux targets.
 
 ### Run Commands
 - `cargo run` - Build and run the application in debug mode
@@ -13,21 +13,21 @@
 - `cargo run -- --help` - Run with help flags
 
 ### Test Commands
-- `cargo test` - Run all tests
-- `cargo test <test_function_name>` - Run a specific test function (e.g., `cargo test test_clipboard_monitor_starts_successfully`)
-- `cargo test --lib` - Run only library tests (not integration tests)
-- `cargo test --doc` - Run documentation tests
-- `cargo test -- --nocapture` - Run tests with output capture disabled for debugging
-- `cargo test -- --ignored` - Run only ignored tests
-- `cargo test <module_name>::` - Run tests for a specific module (e.g., `cargo test cliboard_monitor::`)
+- `cargo test` - Runs all tests.
+- `cargo test <test_function_name>` - Runs a specific test function (e.g., `cargo test test_clipboard_monitor_starts_successfully`).
+- `cargo test --lib` - Runs only library tests (excludes integration tests).
+- `cargo test --doc` - Runs documentation tests.
+- `cargo test -- --nocapture` - Runs tests with output logging enabled for debugging purposes.
+- `cargo test -- --ignored` - Runs only tests that were explicitly ignored.
+- `cargo test <module_name>::` - Runs all tests in a specific module (e.g., `cargo test clipboard_monitor::`).
 
 ### Lint and Format Commands
-- `cargo clippy` - Run the Rust linter to check for common mistakes and style issues
-- `cargo clippy -- -D warnings` - Treat clippy warnings as errors
-- `cargo clippy --fix` - Automatically fix clippy suggestions where possible
-- `cargo fmt` - Format code according to Rust standards
-- `cargo fmt --check` - Check if code is properly formatted without making changes
-- `cargo check` - Check code for compilation errors without building
+- `cargo clippy` - Runs the Rust linter to check for common mistakes and style issues.
+- `cargo clippy -- -D warnings` - Treats clippy warnings as errors (fail build on warnings).
+- `cargo clippy --fix` - Applies auto-fixes suggested by clippy where possible.
+- `cargo fmt` - Formats code according to official Rust style guidelines.
+- `cargo fmt --check` - Verifies whether the code is correctly formatted without modifying files.
+- `cargo check` - Checks code for compilation errors without creating build artifacts.
 
 ### Development Workflow
 - `cargo watch -x run` - Auto-restart on file changes (requires cargo-watch)
@@ -47,18 +47,18 @@ This is a Linux clipboard manager built with Rust, GTK4, and Libadwaita. The app
 - **Service Layer**: Clipboard monitoring and history management in `src/service/`
 - **Dependencies**: chrono for timestamps, gtk4 and libadwaita for UI
 
-### Naming & Aliases
-- Always use `use libadwaita as adw;` for Libadwaita imports
-- Use `gtk` for GTK4 imports (aliased in `Cargo.toml`)
-- Module names: lowercase, snake_case (e.g., `clipboard_monitor.rs`, `ui/mod.rs`)
-- Function names: snake_case (e.g., `build_ui`, `populate_list`)
-- Variable names: snake_case (e.g., `clipboard_monitor`, `list_box`)
-- Type names: PascalCase (structs, enums, traits) (e.g., `ClipboardMonitor`, `IClipboardMonitor`)
-- Constants: SCREAMING_SNAKE_CASE (e.g., `APP_ID`)
-- Trait names: PascalCase with 'I' prefix for interfaces (e.g., `IClipboardMonitor`)
+### Naming Conventions
+- **Libadwaita**: Always use `use libadwaita as adw;` for imports.
+- **GTK4**: Use `gtk` for GTK4 imports (aliased in `Cargo.toml`).
+- **Modules**: Use lowercase, `snake_case` (e.g., `clipboard_monitor.rs`, `ui/mod.rs`).
+- **Functions**: Use `snake_case` (e.g., `build_ui`, `populate_list`).
+- **Variables**: Use `snake_case` (e.g., `clipboard_monitor`, `list_box`).
+- **Types**: Use `PascalCase` for structs, enums, and traits (e.g., `ClipboardMonitor`, `IClipboardMonitor`).
+- **Constants**: Use `SCREAMING_SNAKE_CASE` (e.g., `APP_ID`).
+- **Traits**: Prefix names with 'I' (e.g., `IClipboardMonitor`, `IClipboardHistory`).
 
-### UI Development Pattern
-- Prefer the **Builder Pattern** for widget creation:
+### UI Development Guidelines
+- **Builder Pattern**: Use the builder pattern for declarative widget creation. Example:
   ```rust
   let list_box = gtk::ListBox::builder()
       .selection_mode(gtk::SelectionMode::None)
@@ -68,17 +68,20 @@ This is a Linux clipboard manager built with Rust, GTK4, and Libadwaita. The app
       .margin_end(12)
       .build();
   ```
-- Use Libadwaita components for modern GNOME aesthetics:
+- **Libadwaita Components**: Use Libadwaita for GNOME-style modern applications:
   - `adw::ApplicationWindow` instead of `gtk::ApplicationWindow`
   - `adw::HeaderBar` for the top bar
   - `adw::ActionRow` for list items with title, subtitle, and actions
-  - `adw::Clamp` to restrict the maximum width of content (usually set to `800`)
+  - `adw::Clamp` for content width restriction (typically `800`)
 
 ### Import Organization
-- Group imports by crate, then standard library
-- Separate GTK/Glib related imports
-- Use explicit imports rather than glob imports when possible
-- Example structure:
+- **Grouping**: Organize imports by the following order:
+  1. Standard library (`std::`)
+  2. Crates (e.g., GTK, GLib, Libadwaita)
+  3. Application modules
+- **Separation**: Keep GTK/Glib-related imports grouped together.
+- **Specific Imports**: Prefer explicit over glob imports to maintain clarity.
+- **Example Structure**:
   ```rust
   use std::{cell::RefCell, rc::Rc};
 
@@ -93,48 +96,48 @@ This is a Linux clipboard manager built with Rust, GTK4, and Libadwaita. The app
   ```
 
 ### Error Handling
-- Use `Result<T, E>` for operations that can fail
-- Prefer `if let Ok(value) = ...` over `match` for simple cases
-- Use `expect()` for critical failures that should panic (with descriptive messages)
-- Handle async errors with `?` operator in async functions
-- Example:
+- **General Approach**: Use `Result<T, E>` for operations that can fail gracefully.
+- **Pattern Matching**: Prefer `if let Ok(value) = ...` over `match` for simple cases.
+- **Critical Failures**: Use `expect()` for failures that must panic — include descriptive messages.
+- **Async Errors**: Use the `?` operator to propagate errors in asynchronous functions.
+- **Example**:
   ```rust
   if let Ok(Some(text)) = clipboard.read_text_future().await {
-      // handle success
+      // Handle success
   } else {
-      // handle error case
+      // Handle error case
   }
   ```
 
 ### Memory Management
-- Use `Rc<RefCell<T>>` for shared mutable state between UI components
-- Use `glib::clone!` macro when creating closures that capture GTK objects
-- Use weak references (`#[weak]`) in glib::clone! to avoid reference cycles
-- Strong references (`#[strong]`) for data that needs to outlive the closure
-- Example:
+- **Shared State**: Use `Rc<RefCell<T>>` for shared mutable state between UI components.
+- **GTK Closures**: Use `glib::clone!` macro for closures that capture GTK objects.
+- **Weak References**: Use `#[weak]` in `glib::clone!` to avoid reference cycles.
+- **Strong References**: Use `#[strong]` for data that needs to outlive the closure.
+- **Example**:
   ```rust
   glib::clone!(
       #[weak] widget,
       #[strong] data,
       move || {
-          // closure code - widget is weak, data is strong
+          // Closure code: widget is weak, data is strong.
       }
   )
   ```
 
 ### Styling
-- Use CSS classes provided by Libadwaita where possible
-- Common classes: `"boxed-list"`, `"flat"` for buttons
-- Avoid inline styling; prefer CSS classes
-- Use symbolic icon names (e.g., `"edit-copy-symbolic"`, `"system-search-symbolic"`)
+- **CSS Classes**: Use CSS classes provided by Libadwaita where possible.
+- **Common Classes**: Utilize classes like `"boxed-list"` and `"flat"` for buttons.
+- **Inline Styling**: Avoid inline styling; prefer using predefined CSS classes.
+- **Iconography**: Use symbolic icon names (e.g., `"edit-copy-symbolic"`, `"system-search-symbolic"`).
 
 ### Code Organization
-- No comments unless explaining complex business logic or public API behavior
-- Use traits for interfaces (e.g., `IClipboardMonitor`, `IClipboardHistory`)
-- Keep functions small and focused (under 50 lines when possible)
-- Use modules to organize related functionality
-- Separate UI, service, and data layers
-- Group related functionality in dedicated modules
+- **Comments**: Avoid comments unless explaining complex business logic or public API behavior.
+- **Traits**: Use traits for interfaces (e.g., `IClipboardMonitor`, `IClipboardHistory`).
+- **Function Size**: Keep functions small and focused (under 50 lines where possible).
+- **Modules**: Use modules to organize related functionality.
+- **Layer Separation**: Separate UI, service, and data handling layers.
+- **Grouping**: Group related functionality in dedicated modules to ensure clarity and maintainability.
 
 ### Async Programming
 - Use `glib::MainContext::default().spawn_local()` for GTK-related async operations
@@ -143,12 +146,12 @@ This is a Linux clipboard manager built with Rust, GTK4, and Libadwaita. The app
 - Handle clipboard operations asynchronously to avoid blocking the UI
 
 ### Testing Guidelines
-- Write unit tests in the same file as the code they test
-- Use `#[cfg(test)]` module for test-specific code
-- Integration tests go in `tests/` directory (if any)
-- Test public APIs, not implementation details
-- Use descriptive test names: `#[test] fn test_clipboard_monitor_starts_successfully()`
-- Mock external dependencies when testing service logic
+- **Unit Tests**: Write unit tests in the same file as the code they test.
+- **Test Modules**: Use `#[cfg(test)]` module for test-specific code.
+- **Integration Tests**: Place integration tests in the `tests/` directory (if any).
+- **API Testing**: Test public APIs, not internal implementation details.
+- **Descriptive Test Names**: Use clear names, e.g., `#[test] fn test_clipboard_monitor_starts_successfully()`.
+- **Mocking**: Mock external dependencies when testing service logic.
 
 ### Security Considerations
 - Never log or expose sensitive clipboard content
