@@ -1,7 +1,7 @@
+pub mod about;
 pub mod header;
 pub mod list;
 pub mod search_bar;
-pub mod about;
 pub mod shortcuts;
 
 use std::{cell::RefCell, rc::Rc};
