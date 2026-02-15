@@ -194,7 +194,7 @@ fn populate_list(
                     if let Ok(texture) = gdk::Texture::from_file(&file) {
                         let picture = gtk::Picture::for_paintable(&texture);
                         picture.set_size_request(48, 48);
-                        picture.set_content_fit(gtk::ContentFit::ScaleDown); 
+                        picture.set_content_fit(gtk::ContentFit::ScaleDown);
                         row.add_prefix(&picture);
                         shown_preview = true;
                     }

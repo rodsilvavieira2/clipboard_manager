@@ -77,7 +77,12 @@ pub struct ClipboardHistory {
 
 pub trait IClipboardHistory {
     fn new() -> Self;
-    fn add_entry_with_source(&mut self, content: ClipboardContent, source: String, id: Option<String>);
+    fn add_entry_with_source(
+        &mut self,
+        content: ClipboardContent,
+        source: String,
+        id: Option<String>,
+    );
     fn entries(&self) -> &[ClipboardEntry];
 }
 
@@ -89,7 +94,12 @@ impl IClipboardHistory for ClipboardHistory {
         }
     }
 
-    fn add_entry_with_source(&mut self, content: ClipboardContent, source: String, id: Option<String>) {
+    fn add_entry_with_source(
+        &mut self,
+        content: ClipboardContent,
+        source: String,
+        id: Option<String>,
+    ) {
         if let Some(last) = self.entries.first() {
             match (&last.content, &content) {
                 (ClipboardContent::Text(a), ClipboardContent::Text(b)) if a == b => return,
