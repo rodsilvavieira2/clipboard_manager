@@ -45,13 +45,22 @@ pub fn build_ui(app: &adw::Application, display: &gdk::Display) {
     let history = clipboard_monitor.history();
     let current_clipboard = Rc::new(RefCell::new(None));
 
-    let list_view = list::build(history.clone(), display, current_clipboard.clone());
+    let toast_overlay = adw::ToastOverlay::new();
+    toast_overlay.set_child(Some(&content));
+
+    let list_view = list::build(
+        history.clone(),
+        display,
+        current_clipboard.clone(),
+        toast_overlay.clone(),
+    );
 
     list::setup_search(&list_view, &search_entry);
     list::focus_list(&list_view);
 
     let provider = CliphistProvider;
     let display_clone = display.clone();
+    let toast_overlay_clone = toast_overlay.clone();
 
     glib::MainContext::default().spawn_local(glib::clone!(
         #[weak]
@@ -62,6 +71,8 @@ pub fn build_ui(app: &adw::Application, display: &gdk::Display) {
         current_clipboard,
         #[strong]
         display_clone,
+        #[strong]
+        toast_overlay_clone,
         async move {
             let result = gio::spawn_blocking(move || provider.list_entries()).await;
 
@@ -82,6 +93,7 @@ pub fn build_ui(app: &adw::Application, display: &gdk::Display) {
                         history.clone(),
                         &display_clone,
                         current_clipboard.clone(),
+                        toast_overlay_clone,
                     );
                 }
                 Ok(Err(err)) => {
@@ -99,7 +111,7 @@ pub fn build_ui(app: &adw::Application, display: &gdk::Display) {
     let window = adw::ApplicationWindow::builder()
         .application(app)
         .title("Clipboard Manager")
-        .content(&content)
+        .content(&toast_overlay)
         .default_height(600)
         .default_width(900)
         .resizable(false)

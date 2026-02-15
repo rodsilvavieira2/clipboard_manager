@@ -11,6 +11,7 @@ pub fn build(
     history: Rc<RefCell<ClipboardHistory>>,
     display: &gdk::Display,
     current_clipboard: Rc<RefCell<Option<String>>>,
+    toast_overlay: adw::ToastOverlay,
 ) -> adw::Clamp {
     let list_box = gtk::ListBox::builder()
         .selection_mode(gtk::SelectionMode::Single)
@@ -26,6 +27,7 @@ pub fn build(
     let display_clone = display.clone();
     let history_clone = history.clone();
     let current_clipboard_clone = current_clipboard.clone();
+    let toast_overlay_clone = toast_overlay.clone();
 
     list_box.connect_row_activated(move |list_box, row| {
         let index = row.index();
@@ -57,6 +59,9 @@ pub fn build(
                     &current_clipboard_clone,
                     &final_text,
                 );
+                
+                let toast = adw::Toast::new("Copied to clipboard");
+                toast_overlay_clone.add_toast(toast);
             }
             crate::service::cliboard_history::ClipboardContent::Image(_) => {
                 if let Some(id) = &entry.id
@@ -72,6 +77,9 @@ pub fn build(
                                     &current_clipboard_clone,
                                     "[Image]",
                                 );
+                                
+                                let toast = adw::Toast::new("Image copied to clipboard");
+                                toast_overlay_clone.add_toast(toast);
                             }
                         }
                     }
@@ -79,7 +87,7 @@ pub fn build(
         }
     });
 
-    populate_list(&list_box, history, display, current_clipboard);
+    populate_list(&list_box, history, display, current_clipboard, toast_overlay);
 
     let scrolled_window = gtk::ScrolledWindow::builder()
         .hscrollbar_policy(gtk::PolicyType::Automatic)
@@ -98,6 +106,7 @@ pub fn refresh_list(
     history: Rc<RefCell<ClipboardHistory>>,
     display: &gdk::Display,
     current_clipboard: Rc<RefCell<Option<String>>>,
+    toast_overlay: adw::ToastOverlay,
 ) {
     if let Some(scrolled) = clamp.child().and_downcast::<gtk::ScrolledWindow>() {
         if let Some(list_box) = find_list_box(&scrolled) {
@@ -105,7 +114,7 @@ pub fn refresh_list(
                 list_box.remove(&child);
             }
 
-            populate_list(&list_box, history, display, current_clipboard);
+            populate_list(&list_box, history, display, current_clipboard, toast_overlay);
             select_first_row(clamp);
         } else {
             eprintln!("list refresh: list box not found");
@@ -120,6 +129,7 @@ fn populate_list(
     history: Rc<RefCell<ClipboardHistory>>,
     display: &gdk::Display,
     current_clipboard: Rc<RefCell<Option<String>>>,
+    toast_overlay: adw::ToastOverlay,
 ) {
     let entries = history.borrow().entries().to_vec();
 
@@ -175,6 +185,8 @@ fn populate_list(
         let current_clipboard_for_button = current_clipboard.clone();
         let history_for_button = history.clone();
         let entry_for_button = entry.clone();
+        let toast_overlay_for_button = toast_overlay.clone();
+        
         copy_button.connect_clicked(glib::clone!(
             #[weak]
             list_box,
@@ -195,6 +207,9 @@ fn populate_list(
                         &current_clipboard_for_button,
                         &final_text,
                     );
+                    
+                    let toast = adw::Toast::new("Copied to clipboard");
+                    toast_overlay_for_button.add_toast(toast);
                 }
             }
         ));
