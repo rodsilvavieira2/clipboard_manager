@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc, process::Command};
+use std::{cell::RefCell, process::Command, rc::Rc};
 
 use gtk::{gdk, gio, glib, prelude::*};
 use libadwaita::{self as adw, prelude::*};
@@ -59,35 +59,42 @@ pub fn build(
                     &current_clipboard_clone,
                     &final_text,
                 );
-                
+
                 let toast = adw::Toast::new("Copied to clipboard");
                 toast_overlay_clone.add_toast(toast);
             }
             crate::service::cliboard_history::ClipboardContent::Image(_) => {
                 if let Some(id) = &entry.id
-                    && let Some(bytes) = fetch_binary_content(id) {
-                        let temp_path = std::env::temp_dir().join("clipboard_manager_temp_image");
-                        if std::fs::write(&temp_path, &bytes).is_ok() {
-                            let file = gio::File::for_path(&temp_path);
-                            if let Ok(texture) = gdk::Texture::from_file(&file) {
-                                display_clone.clipboard().set_texture(&texture);
-                                set_current_clipboard(
-                                    list_box,
-                                    &history_clone,
-                                    &current_clipboard_clone,
-                                    "[Image]",
-                                );
-                                
-                                let toast = adw::Toast::new("Image copied to clipboard");
-                                toast_overlay_clone.add_toast(toast);
-                            }
+                    && let Some(bytes) = fetch_binary_content(id)
+                {
+                    let temp_path = std::env::temp_dir().join("clipboard_manager_temp_image");
+                    if std::fs::write(&temp_path, &bytes).is_ok() {
+                        let file = gio::File::for_path(&temp_path);
+                        if let Ok(texture) = gdk::Texture::from_file(&file) {
+                            display_clone.clipboard().set_texture(&texture);
+                            set_current_clipboard(
+                                list_box,
+                                &history_clone,
+                                &current_clipboard_clone,
+                                "[Image]",
+                            );
+
+                            let toast = adw::Toast::new("Image copied to clipboard");
+                            toast_overlay_clone.add_toast(toast);
                         }
                     }
+                }
             }
         }
     });
 
-    populate_list(&list_box, history, display, current_clipboard, toast_overlay);
+    populate_list(
+        &list_box,
+        history,
+        display,
+        current_clipboard,
+        toast_overlay,
+    );
 
     let scrolled_window = gtk::ScrolledWindow::builder()
         .hscrollbar_policy(gtk::PolicyType::Automatic)
@@ -114,7 +121,13 @@ pub fn refresh_list(
                 list_box.remove(&child);
             }
 
-            populate_list(&list_box, history, display, current_clipboard, toast_overlay);
+            populate_list(
+                &list_box,
+                history,
+                display,
+                current_clipboard,
+                toast_overlay,
+            );
             select_first_row(clamp);
         } else {
             eprintln!("list refresh: list box not found");
@@ -169,8 +182,29 @@ fn populate_list(
         list_row.set_child(Some(&row));
 
         if entry.content.is_image() {
-            let icon = gtk::Image::from_icon_name("image-x-generic-symbolic");
-            row.add_prefix(&icon);
+            let mut shown_preview = false;
+
+            if let Some(id) = &entry.id {
+                if let Some(bytes) = fetch_binary_content(id) {
+                    let temp_path =
+                        std::env::temp_dir().join(format!("clipboard_manager_preview_{}", id));
+                    if std::fs::write(&temp_path, &bytes).is_ok() {
+                        let file = gio::File::for_path(&temp_path);
+                        if let Ok(texture) = gdk::Texture::from_file(&file) {
+                            let picture = gtk::Picture::for_paintable(&texture);
+                            picture.set_size_request(48, 48);
+                            picture.set_content_fit(gtk::ContentFit::ScaleDown); // Scale down to fit, preserving aspect ratio
+                            row.add_prefix(&picture);
+                            shown_preview = true;
+                        }
+                    }
+                }
+            }
+
+            if !shown_preview {
+                let icon = gtk::Image::from_icon_name("image-x-generic-symbolic");
+                row.add_prefix(&icon);
+            }
         }
 
         let copy_button = gtk::Button::builder()
@@ -186,7 +220,7 @@ fn populate_list(
         let history_for_button = history.clone();
         let entry_for_button = entry.clone();
         let toast_overlay_for_button = toast_overlay.clone();
-        
+
         copy_button.connect_clicked(glib::clone!(
             #[weak]
             list_box,
@@ -207,7 +241,7 @@ fn populate_list(
                         &current_clipboard_for_button,
                         &final_text,
                     );
-                    
+
                     let toast = adw::Toast::new("Copied to clipboard");
                     toast_overlay_for_button.add_toast(toast);
                 }
