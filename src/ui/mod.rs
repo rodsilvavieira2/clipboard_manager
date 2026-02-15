@@ -1,6 +1,8 @@
 pub mod header;
 pub mod list;
 pub mod search_bar;
+pub mod about;
+pub mod shortcuts;
 
 use std::{cell::RefCell, rc::Rc};
 
@@ -121,63 +123,9 @@ pub fn build_ui(app: &adw::Application, display: &gdk::Display) {
 
     app.set_accels_for_action("win.search", &["<Control>f"]);
 
-    let action_about = gio::SimpleAction::new("show-about", None);
-    action_about.connect_activate(glib::clone!(
-        #[weak]
-        window,
-        move |_, _| {
-            let about = adw::AboutWindow::builder()
-                .application_name("Clipboard Manager")
-                .developer_name("Rodrigo")
-                .version("0.1.0")
-                .comments("A simple clipboard manager built with Rust and GTK4.")
-                .website("https://github.com/rodsilvavieira2/clipboard_manager")
-                .issue_url("https://github.com/rodsilvavieira2/clipboard_manager/issues")
-                .license_type(gtk::License::MitX11)
-                .modal(true)
-                .transient_for(&window)
-                .build();
-            about.present();
-        }
-    ));
-    window.add_action(&action_about);
+    about::setup_about_action(&window);
 
-    let action_shortcuts = gio::SimpleAction::new("show-shortcuts", None);
-    action_shortcuts.connect_activate(glib::clone!(
-        #[weak]
-        window,
-        move |_, _| {
-            let shortcuts = gtk::ShortcutsWindow::builder()
-                .modal(true)
-                .transient_for(&window)
-                .build();
-
-            let section = gtk::ShortcutsSection::builder()
-                .section_name("main")
-                .title("General")
-                .build();
-
-            let group = gtk::ShortcutsGroup::builder().title("Application").build();
-
-            let shortcut_search = gtk::ShortcutsShortcut::builder()
-                .title("Search")
-                .accelerator("<Control>f")
-                .build();
-
-            let shortcut_quit = gtk::ShortcutsShortcut::builder()
-                .title("Quit")
-                .accelerator("<Control>q")
-                .build();
-
-            group.append(&shortcut_search);
-            group.append(&shortcut_quit);
-            section.append(&group);
-            shortcuts.set_child(Some(&section));
-
-            shortcuts.present();
-        }
-    ));
-    window.add_action(&action_shortcuts);
+    shortcuts::setup_shortcuts_action(&window);
 
     window.present();
     list::select_first_row(&list_view);
