@@ -80,9 +80,11 @@ pub fn build_ui(app: &adw::Application, display: &gdk::Display) {
                 Ok(Ok(entries)) => {
                     eprintln!("cliphist entries loaded: {}", entries.len());
                     for (_raw_id, content) in entries.into_iter().rev() {
-                        history
-                            .borrow_mut()
-                            .add_entry_with_source(content, provider.name().to_string(), _raw_id);
+                        history.borrow_mut().add_entry_with_source(
+                            content,
+                            provider.name().to_string(),
+                            _raw_id,
+                        );
                     }
 
                     let total_entries = history.borrow().entries().len();
@@ -136,6 +138,64 @@ pub fn build_ui(app: &adw::Application, display: &gdk::Display) {
     window.add_action(&action_search);
 
     app.set_accels_for_action("win.search", &["<Control>f"]);
+
+    let action_about = gio::SimpleAction::new("show-about", None);
+    action_about.connect_activate(glib::clone!(
+        #[weak]
+        window,
+        move |_, _| {
+            let about = adw::AboutWindow::builder()
+                .application_name("Clipboard Manager")
+                .developer_name("Rodrigo")
+                .version("0.1.0")
+                .comments("A simple clipboard manager built with Rust and GTK4.")
+                .website("https://github.com/rodsilvavieira2/clipboard_manager")
+                .issue_url("https://github.com/rodsilvavieira2/clipboard_manager/issues")
+                .license_type(gtk::License::MitX11)
+                .modal(true)
+                .transient_for(&window)
+                .build();
+            about.present();
+        }
+    ));
+    window.add_action(&action_about);
+
+    let action_shortcuts = gio::SimpleAction::new("show-shortcuts", None);
+    action_shortcuts.connect_activate(glib::clone!(
+        #[weak]
+        window,
+        move |_, _| {
+            let shortcuts = gtk::ShortcutsWindow::builder()
+                .modal(true)
+                .transient_for(&window)
+                .build();
+
+            let section = gtk::ShortcutsSection::builder()
+                .section_name("main")
+                .title("General")
+                .build();
+
+            let group = gtk::ShortcutsGroup::builder().title("Application").build();
+
+            let shortcut_search = gtk::ShortcutsShortcut::builder()
+                .title("Search")
+                .accelerator("<Control>f")
+                .build();
+
+            let shortcut_quit = gtk::ShortcutsShortcut::builder()
+                .title("Quit")
+                .accelerator("<Control>q")
+                .build();
+
+            group.append(&shortcut_search);
+            group.append(&shortcut_quit);
+            section.append(&group);
+            shortcuts.set_child(Some(&section));
+
+            shortcuts.present();
+        }
+    ));
+    window.add_action(&action_shortcuts);
 
     window.present();
     list::select_first_row(&list_view);
